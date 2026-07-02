@@ -10,3 +10,6 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Referências de design (Figma etc.) — não versionadas
+img/
