@@ -1,9 +1,21 @@
 import { HTMLAttributes } from "react";
 
-export function Card({ className = "", ...props }: HTMLAttributes<HTMLDivElement>) {
+type Padding = "none" | "sm" | "md";
+
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  padding?: Padding;
+}
+
+const paddingClasses: Record<Padding, string> = {
+  none: "",
+  sm: "p-3",
+  md: "p-4",
+};
+
+export function Card({ className = "", padding = "md", ...props }: CardProps) {
   return (
     <div
-      className={`rounded-lg border border-zinc-200 bg-white p-4 shadow-sm ${className}`}
+      className={`rounded-xl border border-border bg-surface ${paddingClasses[padding]} ${className}`}
       {...props}
     />
   );

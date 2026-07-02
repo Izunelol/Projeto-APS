@@ -2,9 +2,11 @@ package com.smartlab.rastreabilidade.pointtype;
 
 import com.smartlab.rastreabilidade.common.ConflictException;
 import com.smartlab.rastreabilidade.common.NotFoundException;
+import com.smartlab.rastreabilidade.inspectionpoint.InspectionPointCodeRegenerationService;
 import com.smartlab.rastreabilidade.pointtype.dto.PointTypeRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PointTypeService {
 
     private final PointTypeRepository pointTypeRepository;
+    private final InspectionPointCodeRegenerationService codeRegenerationService;
 
     public Page<PointType> list(Pageable pageable) {
         return pointTypeRepository.findAll(pageable);
@@ -41,13 +44,21 @@ public class PointTypeService {
     @Transactional
     public PointType update(UUID id, PointTypeRequest request) {
         PointType pointType = getById(id);
-        if (!pointType.getAcronym().equalsIgnoreCase(request.getAcronym())
-                && pointTypeRepository.existsByAcronymIgnoreCase(request.getAcronym())) {
+        boolean acronymChanged = !pointType.getAcronym().equalsIgnoreCase(request.getAcronym());
+        if (acronymChanged && pointTypeRepository.existsByAcronymIgnoreCase(request.getAcronym())) {
             throw new ConflictException("Já existe um tipo de ponto com a sigla " + request.getAcronym());
         }
         pointType.setName(request.getName());
         pointType.setAcronym(request.getAcronym());
         pointType.setDescription(request.getDescription());
+        if (acronymChanged) {
+            try {
+                codeRegenerationService.regenerateCodesForPointType(pointType.getId());
+            } catch (DataIntegrityViolationException ex) {
+                throw new ConflictException(
+                        "Não foi possível atualizar a sigla: geraria códigos de ponto duplicados.");
+            }
+        }
         return pointType;
     }
 

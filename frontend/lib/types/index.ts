@@ -110,9 +110,16 @@ export interface InspectionPoint {
   id: string;
   code: string;
   clientId: string;
+  clientName: string;
+  clientAcronym: string;
   unitId: string;
+  unitName: string;
   areaId: string;
+  areaName: string;
+  areaAcronym: string;
   pointTypeId: string;
+  pointTypeName: string;
+  pointTypeAcronym: string;
   sequenceNumber: number;
   locationDescription?: string;
   description?: string;
@@ -124,9 +131,44 @@ export interface InspectionPoint {
   updatedAt: string;
 }
 
+export interface InspectionPointCreateRequest {
+  areaId: string;
+  pointTypeId: string;
+  locationDescription?: string;
+  description?: string;
+  criticality: Criticality;
+  status: PointStatus;
+  referencePhotoUrl?: string;
+}
+
+export interface InspectionPointUpdateRequest {
+  locationDescription?: string;
+  description?: string;
+  criticality: Criticality;
+  status: PointStatus;
+  referencePhotoUrl?: string;
+}
+
 export interface Inspection {
   id: string;
   inspectionPointId: string;
+  inspectionPointCode: string;
+  inspectionDate: string;
+  responsibleName?: string;
+  inspectorId?: string;
+  inspectorName?: string;
+  visualCondition: VisualCondition;
+  electricalContinuityMohm?: number;
+  groundingResistanceOhm?: number;
+  hasOxidation: boolean;
+  needsCorrection: boolean;
+  conforming: boolean;
+  observations?: string;
+  photoUrl?: string;
+  createdAt: string;
+}
+
+export interface InspectionRequest {
   inspectionDate: string;
   responsibleName?: string;
   visualCondition: VisualCondition;
@@ -134,8 +176,17 @@ export interface Inspection {
   groundingResistanceOhm?: number;
   hasOxidation: boolean;
   needsCorrection: boolean;
-  isConforming: boolean;
+  conforming: boolean;
   observations?: string;
   photoUrl?: string;
-  createdAt: string;
+}
+
+export interface DashboardSummary {
+  totalPoints: number;
+  totalInspections: number;
+  conformingCount: number;
+  nonConformingCount: number;
+  conformingPercentage: number;
+  nonConformingPercentage: number;
+  inspectionsToday: number;
 }

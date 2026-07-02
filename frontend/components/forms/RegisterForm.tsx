@@ -62,13 +62,13 @@ export function RegisterForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={loading}>
+      {error && <p className="text-sm text-danger">{error}</p>}
+      <Button type="submit" loading={loading}>
         {loading ? "Criando conta..." : "Criar conta"}
       </Button>
-      <p className="text-center text-sm text-zinc-600">
+      <p className="text-center text-sm text-fg-muted">
         Já tem uma conta?{" "}
-        <Link href="/login" className="font-medium text-blue-600 hover:underline">
+        <Link href="/login" className="font-medium text-accent hover:underline">
           Entrar
         </Link>
       </p>

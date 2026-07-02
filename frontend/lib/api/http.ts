@@ -1,5 +1,5 @@
 import type { ApiErrorBody } from "@/lib/types";
-import { getToken } from "@/lib/api/session";
+import { clearSession, getToken } from "@/lib/api/session";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -47,12 +47,22 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const data = await response.json().catch(() => undefined);
 
   if (!response.ok) {
+    const sessionExpired = auth && (response.status === 401 || response.status === 403);
+    if (sessionExpired) {
+      clearSession();
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+
     throw new ApiError(
       data ?? {
         timestamp: new Date().toISOString(),
         status: response.status,
         error: response.statusText,
-        message: "Erro inesperado ao comunicar com o servidor",
+        message: sessionExpired
+          ? "Sua sessão expirou. Faça login novamente."
+          : "Erro inesperado ao comunicar com o servidor",
         path,
       },
     );

@@ -87,24 +87,67 @@ se o backend não estiver em `localhost:8080`.
 
 ## Estado atual (o que já existe)
 
-Concluído (etapa "base do projeto"):
-- Schema completo do banco (todas as 7 tabelas da spec) + seed dos tipos de ponto.
+Concluído:
+- Schema completo do banco (todas as 7 tabelas da spec) + seed dos tipos de ponto,
+  usuário admin e dados de demonstração (`V4__seed_demo_data.sql`: cliente
+  Raízen/RZ, unidades, áreas, 17 `inspection_points` e 16 `inspections`).
 - Entidades JPA + repositories para todas as tabelas.
 - Cadastro/login de usuário com JWT (`/api/auth/register`, `/api/auth/login`).
 - CRUD completo de `clients`, `units`, `areas`, `point-types`.
+- `InspectionPoint`: service/controller/DTOs completos, com geração automática
+  de código (`{CLIENTE}-SPDA-{AREA}-{TIPO}-{SEQ}`) e tratamento de concorrência
+  via retry em transação isolada (`InspectionPointCodeAssigner`,
+  `REQUIRES_NEW`). `client`/`unit` são derivados server-side da `Area`
+  escolhida (não vêm no payload). QR Code é gerado no frontend (lib `qrcode`),
+  sem endpoint de imagem no backend.
+- `Inspection`: service/controller/DTOs completos
+  (`/api/inspection-points/{code}/inspections`, `/api/inspections/{id}`); o
+  `inspector` é resolvido do usuário autenticado, nunca do payload.
+- `dashboard/DashboardController`: `GET /api/dashboard/summary` (totais,
+  conformidade, inspeções hoje). `by-area`/`by-type`/`measurements-trend` da
+  spec ainda não implementados (nenhuma tela atual depende deles).
+- `/api/inspection-points/**` continua atrás de JWT (não está em
+  `PUBLIC_ENDPOINTS`) — decisão tomada, não pendente.
+- Renomear a sigla de um `Client`, `Area` ou `PointType` recompõe
+  automaticamente o `code` de todos os `InspectionPoint` afetados
+  (`InspectionPointCodeRegenerationService`, chamado a partir de
+  `ClientService`/`AreaService`/`PointTypeService.update()` na mesma
+  transação — se a recomposição colidir com um código já existente, a
+  transação inteira reverte, inclusive a mudança de sigla, e retorna 409).
+- `GlobalExceptionHandler.handleGeneric` loga a exception (`log.error`) antes
+  de devolver o 500 genérico — sem isso, erros inesperados eram invisíveis
+  nos logs do backend.
 - Config comum: CORS, OpenAPI/Swagger, tratamento global de erros, paginação.
-- Frontend: skeleton Next.js/Tailwind, tipos, camada de API, telas de
-  login/registro funcionais, shell autenticado, tela de Clientes (CRUD completo
-  end-to-end como referência), demais telas como placeholders navegáveis.
+- Frontend: tema dark/verde único (sem modo claro) via tokens em
+  `globals.css`, novos primitivos em `components/ui/` (Badge, CodeBadge,
+  Switch, SegmentedControl, Select, Textarea, StatTile, ProgressBar), nav
+  superior mantida (tab bar inferior do Figma fica para uma fase mobile
+  futura).
+- Telas reais e funcionais: Login/Registro, Home (`/`, indicadores +
+  atividades recentes + busca manual de código), Pontos (agrupados por
+  cliente, expansível), Cadastro de Ponto (`/pontos/novo`, com QR gerado após
+  salvar), Ficha do Ponto (`/pontos/[codigo]`, histórico expansível com
+  detalhe por inspeção e botão para gerar/baixar QR Code a qualquer momento),
+  Nova Inspeção (`/pontos/[codigo]/nova-inspecao`), Configurações (visão geral
+  + **Clientes** — tela única que agrupa Cliente → Unidades → Áreas com CRUD
+  completo, edição inline e exclusão com confirmação em duas etapas — e Tipos
+  de Ponto). `/configuracoes/areas` foi removida e agora redireciona para
+  `/configuracoes/clientes` (áreas são gerenciadas lá, agrupadas por cliente).
+- `frontend/lib/api/http.ts`: uma resposta 401/403 numa chamada autenticada
+  limpa a sessão e redireciona para `/login` com mensagem "sessão expirou" —
+  sem isso, um token expirado aparecia como "Erro inesperado ao comunicar com
+  o servidor" (a resposta do Spring Security para isso não é JSON).
 - `docker-compose.yml` + Dockerfiles de backend e frontend.
 
-Pendente (próximas etapas do roadmap, seção 7 do doc):
-- `InspectionPoint`/`Inspection`: só têm entidade + repository; faltam
-  service/controller, geração automática de código (`{CLIENTE}-SPDA-{AREA}-{TIPO}-{SEQ}`)
-  com tratamento de concorrência, e geração de QR Code.
-- Endpoints e telas de indicadores/dashboard.
-- Telas reais de Units/Areas/PointTypes/Pontos (hoje só Clientes está completo
-  como referência).
-- Decidir se `/pontos/{codigo}` (ficha digital via QR) fica público ou exige login.
-- Seed de dados de demonstração (15 pontos + 14 inspeções).
-- Upload de fotos, scanner de QR via câmera, exportação CSV/PDF.
+Pendente / adiado conscientemente (ver roadmap seção 7 do doc):
+- Seção "Usuários" em Configurações (sem endpoint de listagem de usuários no
+  backend — fora de escopo por ora).
+- Upload real de fotos (ponto e inspeção ficam com preview local via
+  `URL.createObjectURL`, sem persistir no servidor).
+- Scanner de QR via câmera (Home usa digitação manual do código por enquanto,
+  mesma rota de destino `/pontos/{code}` que um scanner real usaria).
+- Exportação de relatório em PDF (link "Baixar Relatório" fica desabilitado).
+- Tab bar inferior mobile (fase futura; hoje a nav superior é responsiva mas
+  não replica o layout mobile do Figma).
+- Gráficos de indicadores adicionais (`indicadores/page.tsx` continua
+  placeholder) e exportação CSV.
