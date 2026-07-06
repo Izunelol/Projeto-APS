@@ -14,7 +14,26 @@ import { Card } from "@/components/ui/Card";
 import { CodeBadge } from "@/components/ui/CodeBadge";
 import { Input } from "@/components/ui/Input";
 import { StatTile } from "@/components/ui/StatTile";
-import { ChevronRight, QrCode } from "lucide-react";
+import { QrScannerModal } from "@/components/scanner/QrScannerModal";
+import { ChevronRight, QrCode, Camera } from "lucide-react";
+
+function extractPointCode(scannedValue: string): string {
+  const value = scannedValue.trim();
+  try {
+    const url = new URL(value);
+    const segments = url.pathname.split("/").filter(Boolean);
+    const pontosIndex = segments.indexOf("pontos");
+    if (pontosIndex !== -1 && segments[pontosIndex + 1]) {
+      return segments[pontosIndex + 1];
+    }
+    if (segments.length > 0) {
+      return segments[segments.length - 1];
+    }
+  } catch {
+    // Não é uma URL: assume que o próprio valor lido já é o código do ponto.
+  }
+  return value;
+}
 
 const STATUS_BADGE: Record<PointStatus, "success" | "neutral" | "danger"> = {
   ATIVO: "success",
@@ -31,6 +50,7 @@ export default function DashboardHomePage() {
   const [scanCode, setScanCode] = useState("");
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -42,19 +62,28 @@ export default function DashboardHomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleScanSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function resolveAndGoToPoint(code: string) {
     setScanError(null);
-    if (!scanCode.trim()) return;
+    if (!code.trim()) return;
     setScanning(true);
     try {
-      const point = await getInspectionPointByCode(scanCode.trim().toUpperCase());
+      const point = await getInspectionPointByCode(code.trim().toUpperCase());
       router.push(`/pontos/${point.code}`);
     } catch (err) {
       setScanError(err instanceof ApiError ? err.message : "Ponto não encontrado.");
     } finally {
       setScanning(false);
     }
+  }
+
+  async function handleScanSubmit(event: FormEvent) {
+    event.preventDefault();
+    await resolveAndGoToPoint(scanCode);
+  }
+
+  function handleQrResult(value: string) {
+    setShowScanner(false);
+    void resolveAndGoToPoint(extractPointCode(value));
   }
 
   return (
@@ -86,8 +115,20 @@ export default function DashboardHomePage() {
             Escanear Ponto Agora
           </Button>
         </form>
+        <button
+          type="button"
+          onClick={() => setShowScanner(true)}
+          className="flex items-center gap-2 text-xs font-medium text-accent hover:underline"
+        >
+          <Camera className="h-4 w-4" />
+          Usar câmera para escanear
+        </button>
         {scanError && <p className="text-xs text-danger">{scanError}</p>}
       </Card>
+
+      {showScanner && (
+        <QrScannerModal onClose={() => setShowScanner(false)} onResult={handleQrResult} />
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatTile label="Inspeções Hoje" value={loading ? "—" : String(summary?.inspectionsToday ?? 0)} />
