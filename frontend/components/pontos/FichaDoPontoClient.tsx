@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
-import { getInspectionPointByCode } from "@/lib/api/inspectionPoints";
+import { downloadInspectionPointReport, getInspectionPointByCode } from "@/lib/api/inspectionPoints";
 import { listInspectionsByPointCode } from "@/lib/api/inspections";
 import { ApiError } from "@/lib/api/http";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -42,6 +42,8 @@ export function FichaDoPontoClient({ codigo }: { codigo: string }) {
 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [generatingQr, setGeneratingQr] = useState(false);
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -72,6 +74,25 @@ export function FichaDoPontoClient({ codigo }: { codigo: string }) {
     link.href = qrDataUrl;
     link.download = `${point.code}.png`;
     link.click();
+  }
+
+  async function handleDownloadReport() {
+    if (!point) return;
+    setReportError(null);
+    setDownloadingReport(true);
+    try {
+      const blob = await downloadInspectionPointReport(point.code);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ponto-${point.code}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setReportError(err instanceof ApiError ? err.message : "Não foi possível baixar o relatório.");
+    } finally {
+      setDownloadingReport(false);
+    }
   }
 
   if (loading) {
@@ -175,13 +196,14 @@ export function FichaDoPontoClient({ codigo }: { codigo: string }) {
 
       <button
         type="button"
-        disabled
-        title="Em breve"
-        className="flex items-center justify-center gap-2 text-sm text-fg-subtle disabled:cursor-not-allowed"
+        onClick={handleDownloadReport}
+        disabled={downloadingReport}
+        className="flex items-center justify-center gap-2 text-sm text-accent hover:underline disabled:cursor-not-allowed disabled:text-fg-subtle"
       >
         <Download className="h-4 w-4" />
-        Baixar Relatório Completo (PDF)
+        {downloadingReport ? "Gerando relatório..." : "Baixar Relatório Completo (PDF)"}
       </button>
+      {reportError && <p className="text-center text-xs text-danger">{reportError}</p>}
 
       {showHistory && (
         <Card className="flex flex-col gap-3">

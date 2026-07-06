@@ -10,7 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InspectionPointController {
 
     private final InspectionPointService inspectionPointService;
+    private final InspectionPointReportService inspectionPointReportService;
 
     @GetMapping
     public PageResponse<InspectionPointResponse> list(
@@ -62,5 +65,14 @@ public class InspectionPointController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         inspectionPointService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{code}/report")
+    public ResponseEntity<byte[]> report(@PathVariable String code) {
+        byte[] pdf = inspectionPointReportService.generate(code);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ponto-" + code + ".pdf\"")
+                .body(pdf);
     }
 }

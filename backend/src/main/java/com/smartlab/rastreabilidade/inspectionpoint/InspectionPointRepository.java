@@ -53,4 +53,15 @@ public interface InspectionPointRepository
 
     @EntityGraph(attributePaths = {"client", "area", "pointType"})
     List<InspectionPoint> findByPointTypeId(UUID pointTypeId);
+
+    /**
+     * Usadas pelos indicadores de "by-area"/"by-type": contam quantos pontos
+     * existem por área/tipo, independente de terem ou não inspeções registradas.
+     */
+    @Query("SELECT ip.area.id, ip.area.name, COUNT(ip) FROM InspectionPoint ip GROUP BY ip.area.id, ip.area.name")
+    List<Object[]> countPointsGroupedByArea();
+
+    @Query("SELECT ip.pointType.id, ip.pointType.name, COUNT(ip) FROM InspectionPoint ip "
+            + "GROUP BY ip.pointType.id, ip.pointType.name")
+    List<Object[]> countPointsGroupedByPointType();
 }

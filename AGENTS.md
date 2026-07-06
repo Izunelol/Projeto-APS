@@ -123,6 +123,27 @@ Concluído:
   Switch, SegmentedControl, Select, Textarea, StatTile, ProgressBar), nav
   superior mantida (tab bar inferior do Figma fica para uma fase mobile
   futura).
+- Scanner de QR via câmera: `components/scanner/QrScannerModal.tsx` (lib
+  `jsqr`), acionado pelo botão "Usar câmera para escanear" no Quick Scan da
+  Home; decodifica tanto a URL completa (`/pontos/{code}`) quanto o código
+  puro.
+- Upload real de fotos: pacote `upload` no backend (`FileStorageService` +
+  `UploadController`, `POST /api/uploads`) grava em disco (`smartlab.upload.dir`,
+  volume `uploads_data` no compose) e serve via `/uploads/**` (público, pois é
+  consumido por `<img src>`). Frontend (`lib/api/uploads.ts`) usado no cadastro
+  de ponto (`referencePhotoUrl`) e na nova inspeção (`photoUrl`).
+- Exportação de relatório em PDF: `InspectionPointReportService` (OpenPDF) +
+  `GET /api/inspection-points/{code}/report`; botão "Baixar Relatório Completo"
+  na Ficha do Ponto baixa o PDF autenticado via Blob.
+- Indicadores: `GET /api/dashboard/by-area`, `/by-type` e
+  `/measurements-trend?pointCode=` implementados em `DashboardService`
+  (agregação em memória combinando contagem de pontos e conformidade de
+  inspeções por área/tipo). `indicadores/page.tsx` deixou de ser
+  `PlaceholderPage`: mostra StatTiles, gráficos de barras empilhadas
+  (conforme/não conforme) por área e por tipo com tabela de apoio
+  (`components/charts/ConformityBarChart.tsx`), tendência de medições por
+  ponto selecionado (`components/charts/MeasurementLineChart.tsx`) e
+  exportação client-side em CSV.
 - Telas reais e funcionais: Login/Registro, Home (`/`, indicadores +
   atividades recentes + busca manual de código), Pontos (agrupados por
   cliente, expansível), Cadastro de Ponto (`/pontos/novo`, com QR gerado após
@@ -141,13 +162,6 @@ Concluído:
 
 Pendente / adiado conscientemente (ver roadmap seção 7 do doc):
 - Seção "Usuários" em Configurações (sem endpoint de listagem de usuários no
-  backend — fora de escopo por ora).
-- Upload real de fotos (ponto e inspeção ficam com preview local via
-  `URL.createObjectURL`, sem persistir no servidor).
-- Scanner de QR via câmera (Home usa digitação manual do código por enquanto,
-  mesma rota de destino `/pontos/{code}` que um scanner real usaria).
-- Exportação de relatório em PDF (link "Baixar Relatório" fica desabilitado).
+  backend — fora de escopo por decisão consciente, não por falta de tempo).
 - Tab bar inferior mobile (fase futura; hoje a nav superior é responsiva mas
   não replica o layout mobile do Figma).
-- Gráficos de indicadores adicionais (`indicadores/page.tsx` continua
-  placeholder) e exportação CSV.

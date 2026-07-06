@@ -1,4 +1,5 @@
-import { apiFetch } from "@/lib/api/http";
+import { API_URL, apiFetch, ApiError } from "@/lib/api/http";
+import { getToken } from "@/lib/api/session";
 import type {
   InspectionPoint,
   InspectionPointCreateRequest,
@@ -46,4 +47,23 @@ export function updateInspectionPoint(
 
 export function deleteInspectionPoint(id: string): Promise<void> {
   return apiFetch<void>(`/api/inspection-points/${id}`, { method: "DELETE" });
+}
+
+export async function downloadInspectionPointReport(code: string): Promise<Blob> {
+  const token = getToken();
+  const response = await fetch(`${API_URL}/api/inspection-points/${encodeURIComponent(code)}/report`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+
+  if (!response.ok) {
+    throw new ApiError({
+      timestamp: new Date().toISOString(),
+      status: response.status,
+      error: response.statusText,
+      message: "Não foi possível gerar o relatório em PDF.",
+      path: `/api/inspection-points/${code}/report`,
+    });
+  }
+
+  return response.blob();
 }

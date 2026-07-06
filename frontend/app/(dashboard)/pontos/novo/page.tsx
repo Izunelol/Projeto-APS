@@ -8,6 +8,7 @@ import { listUnitsByClient } from "@/lib/api/units";
 import { listAreasByUnit } from "@/lib/api/areas";
 import { listPointTypes } from "@/lib/api/pointTypes";
 import { createInspectionPoint } from "@/lib/api/inspectionPoints";
+import { uploadFile } from "@/lib/api/uploads";
 import { ApiError } from "@/lib/api/http";
 import type { Area, Client, Criticality, InspectionPoint, PointStatus, PointType } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
@@ -18,7 +19,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { Textarea } from "@/components/ui/Textarea";
-import { CheckCircle2, MapPin, QrCode, Zap } from "lucide-react";
+import { Camera, CheckCircle2, MapPin, QrCode, Zap } from "lucide-react";
 
 type AreaOption = Area & { unitName: string };
 
@@ -40,6 +41,9 @@ export default function NovoPontoPage() {
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<PointStatus>("ATIVO");
   const [criticality, setCriticality] = useState<Criticality>("MEDIA");
+  const [referencePhotoUrl, setReferencePhotoUrl] = useState<string | undefined>(undefined);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [loadingAreas, setLoadingAreas] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +94,22 @@ export default function NovoPontoPage() {
       ? `${selectedClient.acronym}-SPDA-${selectedArea.acronym}-${selectedPointType.acronym}-???`
       : null;
 
+  async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPhotoPreview(URL.createObjectURL(file));
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const url = await uploadFile(file);
+      setReferencePhotoUrl(url);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Não foi possível enviar a foto.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -106,6 +126,7 @@ export default function NovoPontoPage() {
         description: description || undefined,
         status,
         criticality,
+        referencePhotoUrl,
       });
       setCreatedPoint(point);
       const url = `${window.location.origin}/pontos/${point.code}`;
@@ -240,6 +261,22 @@ export default function NovoPontoPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
+
+          <div>
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-fg-subtle">Foto de Referência</p>
+            <div className="flex items-center gap-3">
+              <label className="flex h-20 w-20 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-fg-subtle hover:border-border-strong hover:text-fg-muted">
+                <Camera className="h-5 w-5" />
+                <span className="text-[10px] font-medium">ADICIONAR</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+              </label>
+              {photoPreview && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photoPreview} alt="Prévia da foto de referência" className="h-20 w-20 rounded-lg object-cover" />
+              )}
+            </div>
+            {uploadingPhoto && <p className="mt-1 text-xs text-fg-subtle">Enviando foto...</p>}
+          </div>
 
           <Card padding="sm" className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-alt text-fg-subtle">

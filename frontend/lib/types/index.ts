@@ -190,3 +190,29 @@ export interface DashboardSummary {
   nonConformingPercentage: number;
   inspectionsToday: number;
 }
+
+export interface AreaIndicator {
+  areaId: string;
+  areaName: string;
+  totalPoints: number;
+  totalInspections: number;
+  conformingCount: number;
+  nonConformingCount: number;
+  conformingPercentage: number;
+}
+
+export interface PointTypeIndicator {
+  pointTypeId: string;
+  pointTypeName: string;
+  totalPoints: number;
+  totalInspections: number;
+  conformingCount: number;
+  nonConformingCount: number;
+  conformingPercentage: number;
+}
+
+export interface MeasurementTrendPoint {
+  inspectionDate: string;
+  electricalContinuityMohm?: number;
+  groundingResistanceOhm?: number;
+}

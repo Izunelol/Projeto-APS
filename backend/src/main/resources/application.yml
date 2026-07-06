@@ -23,6 +23,11 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
 server:
   port: ${SERVER_PORT:8080}
 
@@ -39,6 +44,8 @@ smartlab:
       expiration-minutes: ${JWT_EXPIRATION_MINUTES:480}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  upload:
+    dir: ${UPLOADS_DIR:uploads}
 
 logging:
   level:

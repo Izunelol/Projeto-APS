@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getInspectionPointByCode } from "@/lib/api/inspectionPoints";
 import { createInspection } from "@/lib/api/inspections";
+import { uploadFile } from "@/lib/api/uploads";
 import { getStoredUser } from "@/lib/api/session";
 import { ApiError } from "@/lib/api/http";
 import type { InspectionPoint, VisualCondition } from "@/lib/types";
@@ -43,6 +44,8 @@ export function NovaInspecaoClient({ codigo }: { codigo: string }) {
   const [conforming, setConforming] = useState(true);
   const [observations, setObservations] = useState("");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>(undefined);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -53,10 +56,20 @@ export function NovaInspecaoClient({ codigo }: { codigo: string }) {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Não foi possível carregar o ponto."));
   }, [codigo]);
 
-  function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
     setPhotoPreview(URL.createObjectURL(file));
+    setUploadingPhoto(true);
+    setError(null);
+    try {
+      const url = await uploadFile(file);
+      setPhotoUrl(url);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Não foi possível enviar a foto.");
+    } finally {
+      setUploadingPhoto(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -74,6 +87,7 @@ export function NovaInspecaoClient({ codigo }: { codigo: string }) {
         needsCorrection,
         conforming,
         observations: observations || undefined,
+        photoUrl,
       });
       router.push(`/pontos/${codigo}`);
     } catch (err) {
@@ -178,9 +192,7 @@ export function NovaInspecaoClient({ codigo }: { codigo: string }) {
                 <img src={photoPreview} alt="Prévia da foto" className="h-20 w-20 rounded-lg object-cover" />
               )}
             </div>
-            {photoPreview && (
-              <p className="mt-1 text-xs text-fg-subtle">Anexo local — envio ao servidor ainda não implementado.</p>
-            )}
+            {uploadingPhoto && <p className="mt-1 text-xs text-fg-subtle">Enviando foto...</p>}
           </div>
 
           {error && <p className="text-sm text-danger">{error}</p>}
